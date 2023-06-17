@@ -154,7 +154,7 @@ class XGO():
     """
 
     def __init__(self, port, baud=115200, version='xgomini'):
-        self.ser = serial.Serial("/dev/ttyAMA0", baud, timeout=0.5)
+        self.ser = serial.Serial(port, baud, timeout=0.5)
         self.ser.flushOutput()
         self.ser.flushInput()
         self.port = port
@@ -209,7 +209,7 @@ class XGO():
         elif direction in ['y', 'Y']:
             self.move_y(step)
         else:
-            print("ERROR!Invalid direction!")
+            raise Exception("Invalid direction!")
 
     def move_x(self, step):
         XGOorder["VX"][1] = conver2u8(step, XGOparam["VX_LIMIT"])
@@ -244,7 +244,7 @@ class XGO():
     def __translation(self, direction, data):
         index = search(direction, ['x', 'y', 'z'])
         if index == -1:
-            print("ERROR!Direction must be 'x', 'y' or 'z'")
+            raise Exception("Direction must be 'x', 'y' or 'z'")
             return
         XGOorder["TRANSLATION"][index] = conver2u8(data, XGOparam["TRANSLATION_LIMIT"][index - 1])
         self.__send("TRANSLATION", index)
@@ -256,7 +256,7 @@ class XGO():
         """
         if (isinstance(direction, list)):
             if (len(direction) != len(data)):
-                print("ERROR!The length of direction and data don't match!")
+                raise Exception("The length of direction and data don't match!")
                 return
             for i in range(len(data)):
                 self.__translation(direction[i], data[i])
@@ -266,7 +266,7 @@ class XGO():
     def __attitude(self, direction, data):
         index = search(direction, ['r', 'p', 'y'])
         if index == -1:
-            print("ERROR!Direction must be 'r', 'p' or 'y'")
+            raise Exception("Direction must be 'r', 'p' or 'y'")
             return
         XGOorder["ATTITUDE"][index] = conver2u8(data, XGOparam["ATTITUDE_LIMIT"][index - 1])
         self.__send("ATTITUDE", index)
@@ -278,8 +278,7 @@ class XGO():
         """
         if (isinstance(direction, list)):
             if (len(direction) != len(data)):
-                print("ERROR!The length of direction and data don't match!")
-                return
+                raise Exception("The length of direction and data don't match!")
             for i in range(len(data)):
                 self.__attitude(direction[i], data[i])
         else:
@@ -291,8 +290,7 @@ class XGO():
         Make the robot do the specified preset action
         """
         if action_id <= 0 or action_id > 255:
-            print("ERROR!Illegal Action ID!")
-            return
+            raise Exception("Illegal Action ID!")
         XGOorder["ACTION"][1] = action_id
         self.__send("ACTION")
 
@@ -313,16 +311,15 @@ class XGO():
         """
         value = [0, 0, 0]
         if leg_id not in [1, 2, 3, 4]:
-            print("Error!Illegal Index!")
-            return
+            raise Exception("Illegal Index!")
         if len(data) != 3:
-            message = "Error!Illegal Value!"
-            return
+            #NOTE: Here might be some issues, check and see?
+            raise Exception("Illegal Value!")
         for i in range(3):
             try:
                 value[i] = conver2u8(data[i], XGOparam["LEG_LIMIT"][i])
             except:
-                print("Error!Illegal Value!")
+                raise Exception("Illegal Value!")
         for i in range(3):
             index = 3 * (leg_id - 1) + i + 1
             XGOorder["LEG_POS"][index] = value[i]
@@ -349,14 +346,12 @@ class XGO():
 
         if isinstance(motor_id, list):
             if len(motor_id) != len(data):
-                print("Error!Length Mismatching!")
-                return
+                raise Exception("Length Mismatching!")
             index = []
             for i in range(len(motor_id)):
                 temp_index = search(motor_id[i], MOTOR_ID)
                 if temp_index == -1:
-                    print("Error!Illegal Index!")
-                    return
+                    raise Exception("Illegal Index!")
                 index.append(temp_index)
             for i in range(len(index)):
                 self.__motor(index[i], data[i])
@@ -366,8 +361,7 @@ class XGO():
 
     def unload_motor(self, leg_id):
         if leg_id not in [1, 2, 3, 4, 5]:
-            print('ERROR!leg_id must be 1, 2, 3 ,4 or 5')
-            return
+            raise Exception('leg_id must be 1, 2, 3 ,4 or 5')
         XGOorder["UNLOAD_MOTOR"][1] = 0x10 + leg_id
         self.__send("UNLOAD_MOTOR")
 
@@ -377,8 +371,7 @@ class XGO():
 
     def load_motor(self, leg_id):
         if leg_id not in [1, 2, 3, 4, 5]:
-            print('ERROR!leg_id must be 1, 2, 3 ,4 or 5')
-            return
+            raise Exception('leg_id must be 1, 2, 3 ,4 or 5')
         XGOorder["LOAD_MOTOR"][1] = 0x20 + leg_id
         self.__send("LOAD_MOTOR")
 
@@ -389,8 +382,7 @@ class XGO():
     def __periodic_rot(self, direction, period):
         index = search(direction, ['r', 'p', 'y'])
         if index == -1:
-            print("ERROR!Direction must be 'r', 'p' or 'y'")
-            return
+            raise Exception("Direction must be 'r', 'p' or 'y'")
         if period == 0:
             XGOorder["PERIODIC_ROT"][index] = 0
         else:
@@ -404,8 +396,7 @@ class XGO():
         """
         if (isinstance(direction, list)):
             if (len(direction) != len(period)):
-                print("ERROR!The length of direction and data don't match!")
-                return
+                raise Exception("The length of direction and data don't match!")
             for i in range(len(period)):
                 self.__periodic_rot(direction[i], period[i])
         else:
@@ -414,8 +405,7 @@ class XGO():
     def __periodic_tran(self, direction, period):
         index = search(direction, ['x', 'y', 'z'])
         if index == -1:
-            print("ERROR!Direction must be 'x', 'y' or 'z'")
-            return
+            raise Exception("Direction must be 'x', 'y' or 'z'")
         if period == 0:
             XGOorder["PERIODIC_TRAN"][index] = 0
         else:
@@ -429,8 +419,7 @@ class XGO():
         """
         if (isinstance(direction, list)):
             if (len(direction) != len(period)):
-                print("ERROR!The length of direction and data don't match!")
-                return
+                raise Exception("The length of direction and data don't match!")
             for i in range(len(period)):
                 self.__periodic_tran(direction[i], period[i])
         else:
@@ -459,8 +448,7 @@ class XGO():
         elif mode == "high":
             value = 0x02
         else:
-            print("ERROR!Illegal Value!")
-            return
+            raise Exception("Illegal Value!")
         XGOorder["MOVE_MODE"][1] = value
         self.__send("MOVE_MODE")
 
@@ -480,8 +468,7 @@ class XGO():
         Turn on / off the self stable state of the robot dog
         """
         if mode != 0 and mode != 1:
-            print("ERROR!Illegal Value!")
-            return
+            raise Exception("Illegal Value!")
         XGOorder["IMU"][1] = mode
         self.__send("IMU")
 
@@ -491,8 +478,7 @@ class XGO():
         Turn on / off the action status of the robot dog cycle
         """
         if mode != 0 and mode != 1:
-            print("ERROR!Illegal Value!")
-            return
+            raise Exception("Illegal Value!")
         XGOorder["PERFORM"][1] = mode
         self.__send("PERFORM")
 
@@ -503,8 +489,7 @@ class XGO():
         only effective when control the steering gear separately
         """
         if speed < 0 or speed > 255:
-            print("ERROR!Illegal Value!The speed parameter needs to be between 0 and 255!")
-            return
+            raise Exception("Illegal Value! The speed parameter needs to be between 0 and 255!")
         if speed == 0:
             speed = 1
         XGOorder["MOTOR_SPEED"][1] = speed
@@ -512,17 +497,15 @@ class XGO():
 
     def bt_rename(self, name):
         if type(name) != str:
-            print("ERROR!The input value must be of string type!")
-            return
+            raise Exception("The input value must be of string type!")
         len_name = len(name)
         if len_name > 10:
-            print("ERROR!The length of the input string cannot be longer than 10!")
-            return
+            raise Exception("The length of the input string cannot be longer than 10!")
         try:
             XGOorder["BT_NAME"][1:len_name + 1] = list(name.encode('ascii'))
             self.__send("BT_NAME", len=len_name)
         except:
-            print("ERROR!Name only supports characters in ASCII code!")
+            raise Exception("Name only supports characters in ASCII code!")
 
     def read_motor(self):
         """
@@ -669,7 +652,7 @@ class XGO():
                 print("Start!")
                 self.__send_bin(filename)
             else:
-                print("Upgrade Response Error!")
+                raise Exception("Upgrade Response Error!")
         else:
             print("Upgrade Timeout!")
 
@@ -702,7 +685,7 @@ class XGO():
         elif state == 'end':
             XGOorder["CALIBRATION"][1] = 0
         else:
-            print("ERROR!")
+            raise Exception("ERROR!")
         self.__send("CALIBRATION")
         return
 
@@ -715,8 +698,7 @@ class XGO():
             arm_x_u8 = conver2u8(arm_x, XGOparam["ARM_LIMIT"][0])
             arm_z_u8 = conver2u8(arm_z, XGOparam["ARM_LIMIT"][1])
         except:
-            print("Error!Illegal Value!")
-            return
+            raise Exception("Illegal Value!")
         XGOorder["ARM_X"][1] = arm_x_u8
         XGOorder["ARM_Z"][1] = arm_z_u8
         self.__send("ARM_X")
@@ -724,8 +706,7 @@ class XGO():
 
     def arm_mode(self, mode):
         if mode != 0x01 and mode != 0x00:
-            print("Error!Illegal Value!")
-            return
+            raise Exception("Illegal Value!")
         XGOorder["ARM_MODE"][1] = mode
         self.__send("ARM_MODE")
 
@@ -733,7 +714,6 @@ class XGO():
         try:
             claw_pos = conver2u8(pos, [0, 255])
         except:
-            print("Error!Illegal Value!")
-            return
+            raise Exception("Illegal Value!")
         XGOorder["CLAW"][1] = claw_pos
         self.__send("CLAW")

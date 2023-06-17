@@ -4,6 +4,7 @@ from flask import request
 import random
 import string 
 from flask_socketio import SocketIO
+import sys
 
 # Global variables 
 app = Flask(__name__)
@@ -11,15 +12,18 @@ app.config['SECRET_KEY'] = 'test'
 io = SocketIO(app, cors_allowed_origins="*")
 state = {
     "controled": False,
-    "access_key": ''
+    "access_key": '',
+    "action": ''
 }
 error_no_key = "You must provide a valid access key!"
-#TODO: Add the XGO instance 
+dog = None 
+
+
+if len(sys.argv) >= 2 and sys.argv[1] == 'dog':
+    # If the dog parameter was provided then initialize dog 
+    dog = XGO('/dev/ttyAMA0','xgolite')
 
 # Global functions 
-
-if __name__ == '__main__':
-    io.run(app)
 
 def check_auth(key):
     if state['controled']:
@@ -59,7 +63,11 @@ def action():
     data = request.json
     if check_auth(data.get('key')):
         id = data.get('id')
-        #TODO: add the call to XGO class 
+        
+        try:
+            dog.action(id)
+        except Exception as err:
+            return { "ok": False, "error": err }
         return { "ok": True }
     else:
         return { "error": error_no_key }
@@ -70,7 +78,10 @@ def move():
     if check_auth(data.get('key')):
         dir = data.get('direction')
         step = data.get('step')
-        #TODO: add the call to XGO class 
+        try:
+            dog.move(dir, step)
+        except Exception as err:
+            return { "ok": False, "error": err }
         return { "ok": True }
     else:
         return { "error": error_no_key }
@@ -80,7 +91,11 @@ def turn():
     data = request.json
     if check_auth(data.get('key')):
         step = data.get('step')
-        #TODO: add the call to XGO class 
+        try:
+            dog.turn(step)
+        except Exception as err:
+            return { "ok": False, "error": err }
+        return { "ok": True }
     else: 
         return { "error": error_no_key }
 
@@ -90,7 +105,11 @@ def translate():
     if check_auth(data.get('key')):
         dir = data.get('direction')
         step = data.get('step')
-        #TODO: add the call to XGO class 
+        try:
+            dog.translation(dir, step)
+        except Exception as err:
+            return { "ok": False, "error": err }
+        return { "ok": True }
     else: 
         return { "error": error_no_key }
     
@@ -100,7 +119,11 @@ def attitude():
     if check_auth(data.get('key')):
         dir = data.get('direction')
         step = data.get('step')
-        #TODO: add the call to XGO class 
+        try:
+            dog.attitude(dir, step)
+        except Exception as err:
+            return { "ok": False, "error": err }
+        return { "ok": True }
     else: 
         return { "error": error_no_key }
     
@@ -112,7 +135,12 @@ def leg():
         x = data.get('x')
         y = data.get('y')
         z = data.get('z')
-        #TODO: add the call to XGO class 
+        try:
+            #NOTE: This is nonstandard...
+            dog.leg(id, {x, y, z})
+        except Exception as err:
+            return { "ok": False, "error": err }
+        return { "ok": True }
     else: 
         return { "error": error_no_key }
     
@@ -122,7 +150,11 @@ def motor():
     if check_auth(data.get('key')):
         id = data.get('id')
         step = data.get('step')
-        #TODO: add the call to XGO class 
+        try:
+            dog.motor(id, step)
+        except Exception as err:
+            return { "ok": False, "error": err }
+        return { "ok": True }
     else: 
         return { "error": error_no_key }
     
@@ -133,3 +165,9 @@ def on_connect():
 @io.on('command')
 def on_command(json):
     print('JSON ', json)
+
+# Main functions 
+if __name__ == '__main__':
+    print(sys.argv)
+    io.run(app)
+    app.run()
