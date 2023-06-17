@@ -1,14 +1,16 @@
 from xgolib import XGO 
-from flask import Flask
+from flask import Flask, Response 
 from flask import request
 import random
 import string 
 from flask_socketio import SocketIO
 import sys
+import cv2
 
 # Global variables 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'test'
+video = cv2.VideoCapture(0)
 io = SocketIO(app, cors_allowed_origins="*")
 state = {
     "controled": False,
@@ -18,10 +20,19 @@ state = {
 error_no_key = "You must provide a valid access key!"
 dog = None 
 
-
 if len(sys.argv) >= 2 and sys.argv[1] == 'dog':
     # If the dog parameter was provided then initialize dog 
-    dog = XGO('/dev/ttyAMA0','xgolite')
+    dog = XGO(port='/dev/serial0',version="xgolite")
+    fm=dog.read_firmware()
+    if fm[0]=='M':
+        print('XGO-MINI')
+        dog = XGO(port='/dev/ttyAMA0',version="xgomini")
+        dog_type='M'
+    else:
+        print('XGO-LITE')
+        dog_type='L'
+    dog.reset()
+    print('Connected to XGO. Battery: ', dog.read_battery())
 
 # Global functions 
 
@@ -57,13 +68,41 @@ def release():
         return state
     else:
         return { "error": error_no_key }
+
+# Helper function to generate video from cv2 video capture 
+def gen(video):
+    while True:
+        success, image = video.read()
+        frame_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        frame_gray = cv2.equalizeHist(frame_gray)
+
+        faces = face_cascade.detectMultiScale(frame_gray)
+
+        for (x, y, w, h) in faces:
+            center = (x + w//2, y + h//2)
+            cv2.putText(image, "X: " + str(center[0]) + " Y: " + str(center[1]), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3)
+            image = cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
+            faceROI = frame_gray[y:y+h, x:x+w]
+        ret, jpeg = cv2.imencode('.jpg', image)
+
+        frame = jpeg.tobytes()
+        
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+
+@app.route('/video')
+def video():
+    global video 
+    return Response(gen(video),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
     
 @app.route('/action', methods=['POST'])
 def action():
     data = request.json
     if check_auth(data.get('key')):
         id = data.get('id')
-        
+        print('action, id', id)
         try:
             dog.action(id)
         except Exception as err:
@@ -81,7 +120,7 @@ def move():
         try:
             dog.move(dir, step)
         except Exception as err:
-            return { "ok": False, "error": err }
+            return { "ok": False, "error": str(err) }
         return { "ok": True }
     else:
         return { "error": error_no_key }
@@ -94,7 +133,7 @@ def turn():
         try:
             dog.turn(step)
         except Exception as err:
-            return { "ok": False, "error": err }
+            return { "ok": False, "error": str(err) }
         return { "ok": True }
     else: 
         return { "error": error_no_key }
@@ -169,5 +208,5 @@ def on_command(json):
 # Main functions 
 if __name__ == '__main__':
     print(sys.argv)
+    app.run(host='0.0.0.0', port=5000)
     io.run(app)
-    app.run()

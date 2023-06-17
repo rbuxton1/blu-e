@@ -154,7 +154,7 @@ class XGO():
     """
 
     def __init__(self, port, baud=115200, version='xgomini'):
-        self.ser = serial.Serial(port, baud, timeout=0.5)
+        self.ser = serial.Serial(port, baud, timeout=0.5, write_timeout=0.5)
         self.ser.flushOutput()
         self.ser.flushInput()
         self.port = port
@@ -180,7 +180,7 @@ class XGO():
         tx.extend(value)
         tx.extend([sum_data, 0x00, 0xAA])
         self.ser.write(tx)
-        print("tx_data: ", tx)
+        #print("tx_data: ", tx)
 
     def __read(self, addr, read_len=1):
         mode = 0x02
@@ -630,7 +630,7 @@ class XGO():
                     elif self.rx_FLAG == 8:
                         if num == 0xAA:
                             self.rx_FLAG = 0
-                            print("rx_data: ", rx_msg)
+                            #print("rx_data: ", rx_msg)
                             return True
                         else:
                             self.rx_FLAG = 0
