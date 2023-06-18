@@ -6,11 +6,18 @@ import string
 from flask_socketio import SocketIO
 import sys
 import cv2
+from picamera2 import Picamera2
 
 # Global variables 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'test'
-video = cv2.VideoCapture(0)
+
+# Using picamera2 avoids the issues with openCV and the new libcamera stack.
+picam2 = Picamera2()
+config = picam2.create_preview_configuration()
+picam2.configure(config)
+picam2.start()
+
 io = SocketIO(app, cors_allowed_origins="*")
 state = {
     "controled": False,
@@ -72,29 +79,17 @@ def release():
 # Helper function to generate video from cv2 video capture 
 def gen(video):
     while True:
-        success, image = video.read()
-        frame_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        frame_gray = cv2.equalizeHist(frame_gray)
+        frame = picam2.capture_array()
+        encode_success, jpeg = cv2.imencode('.jpg', frame)
 
-        faces = face_cascade.detectMultiScale(frame_gray)
-
-        for (x, y, w, h) in faces:
-            center = (x + w//2, y + h//2)
-            cv2.putText(image, "X: " + str(center[0]) + " Y: " + str(center[1]), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3)
-            image = cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
-
-            faceROI = frame_gray[y:y+h, x:x+w]
-        ret, jpeg = cv2.imencode('.jpg', image)
-
-        frame = jpeg.tobytes()
+        img = jpeg.tobytes()
         
         yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+               b'Content-Type: image/jpeg\r\n\r\n' + img + b'\r\n\r\n')
 
 @app.route('/video')
-def video():
-    global video 
-    return Response(gen(video),
+def video_feed():
+    return Response(gen(picam2),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
     
 @app.route('/action', methods=['POST'])
@@ -102,7 +97,6 @@ def action():
     data = request.json
     if check_auth(data.get('key')):
         id = data.get('id')
-        print('action, id', id)
         try:
             dog.action(id)
         except Exception as err:
