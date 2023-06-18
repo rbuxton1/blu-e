@@ -1,5 +1,5 @@
 from xgolib import XGO 
-from flask import Flask, Response 
+from flask import Flask, Response, render_template
 from flask import request
 import random
 import string 
@@ -22,7 +22,7 @@ io = SocketIO(app, cors_allowed_origins="*")
 state = {
     "controled": False,
     "access_key": '',
-    "action": ''
+    "cmd": ''
 }
 error_no_key = "You must provide a valid access key!"
 dog = None 
@@ -50,6 +50,10 @@ def check_auth(key):
     return False
 
 # HTTP Routes 
+
+@app.route('/rc')
+def rc():
+    return render_template('control.html')
 
 @app.route('/control', methods=['GET', 'POST'])
 def control():
@@ -108,6 +112,7 @@ def action():
 @app.route('/move', methods=['POST'])
 def move():
     data = request.json
+    print(data)
     if check_auth(data.get('key')):
         dir = data.get('direction')
         step = data.get('step')
@@ -197,7 +202,15 @@ def on_connect():
 
 @io.on('command')
 def on_command(json):
-    print('JSON ', json)
+    try :
+        if json['cmd'] == 'move':
+            dog.move(json['direction'], json['step'])
+        elif json['cmd'] == 'turn':
+            dog.turn(json['step'])
+        elif json['cmd'] == 'attitude':
+            dog.attitude(json['direction'], json['step'])
+    except Exception as err:
+        print(err)
 
 # Main functions 
 if __name__ == '__main__':

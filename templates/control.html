@@ -1,0 +1,50 @@
+<html>
+    <head>
+        <script src="/static/joy.min.js"></script>
+        <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
+    </head>
+    <div style="width: 100%;">
+        <img src="/video" alt="" style="width:100%;">
+        <div style="display: flex; flex-direction: row; width: 100%; justify-content: center;">
+            <div id="leftStick" style="width:45vw;height:45vw;margin-bottom:20px;"></div>
+            <div id="rightStick" style="width:45vw;height:45vw;margin-bottom:20px;"></div>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            <div style="display: flex; flex-direction: row;">
+                <div>Move speed ():</div>
+                <input type="range" min="1" max="25" value="25" id="myRange" style="width:75%;height:10vw;">
+            </div>
+            
+        </div>
+    </div>
+
+    <script type="text/javascript">
+
+        const scale = (input, inputRange, outputRange) => {
+            let [inMin, inMax] = inputRange;
+            let [outMin, outMax] = outputRange;
+            let s = (input - inMin) / (inMax - inMin);
+            return s * (outMax - outMin) + outMin;
+        }
+
+        const socket = io();
+        socket.on('connect', () => {
+            console.log('Connected!');
+        })
+
+        let left = new JoyStick('leftStick', {},  (data) => {
+            let motion = scale(data.y, [-100, 100], [-25, 25]);
+            let turn = scale(data.x, [-100, 100], [-150, 150]);
+
+            socket.emit('command', { cmd: 'move', step: motion, direction: 'x' });
+            socket.emit('command', { cmd: 'turn', step: -turn });
+        });
+        let right = new JoyStick('rightStick', {}, (data) => {
+            let pitch = scale(data.y, [-100, 100], [-10, 10]);
+            let yaw = scale(data.x, [-100, 100], [-12, 12]);
+
+            socket.emit('command', { cmd: 'attitude', direction: 'p', step: pitch });
+            socket.emit('command', { cmd: 'attitude', direction: 'y', step: -yaw });
+        });
+    </script>
+</html>
