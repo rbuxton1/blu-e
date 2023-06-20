@@ -231,24 +231,48 @@ def reset_motors():
     except Exception as err:
         return { "ok": False, "error": err }
     return { "ok": True }
+
+@app.route('/imu', methods=['POST'])
+def set_imu():
+    try:
+        data = request.json
+        dog.imu(data['mode'])
+    except Exception as err:
+        return { "ok": False, "error": err }
+    return { "ok": True }
     
 @io.on('connect')
 def on_connect():
+    dog.reset()
+    io.emit('status', {
+        "battery": dog.read_battery(),
+        "motors": dog.read_motor(),
+        "pitch": dog.read_pitch(),
+        "roll": dog.read_roll(),
+        "yaw": dog.read_yaw()
+    })
     print('New client connected!')
 
 @io.on('command')
 def on_command(json):
-    print(json)
     try :
         if json['cmd'] == 'move':
-            dog.move(json['direction'], json['step'])
+            dog.move(json['direction'], int(json['step']))
         elif json['cmd'] == 'turn':
             dog.turn(json['step'])
         elif json['cmd'] == 'attitude':
-            dog.attitude(json['direction'], json['step'])
+            dog.attitude(json['direction'], int(json['step']))
+        elif json['cmd'] == 'translate':
+            dog.translation(json['direction'], int(json['step']))
         elif json['cmd'] == 'motor':
-            print(json)
             dog.motor(json['id'], int(json['step']))
+        elif json['cmd'] == 'gait':
+            dog.gait_type(json['mode'])
+        elif json['cmd'] == 'pace':
+            dog.pace(json(['mode']))
+        elif json['cmd'] == 'imu':
+            dog.imu(int(json['mode']))
+
     except Exception as err:
         print(err)
 

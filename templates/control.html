@@ -8,27 +8,88 @@
         <script src="/static/joy.min.js"></script>
         <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
     </head>
-    <div style="width: 100%;">
-        <img src="/video" alt="" style="width:100%;">
-        <div style="display: flex; flex-direction: row; width: 100%; justify-content: center;">
-            <div id="leftStick" style="width:45%; height: 45vw; margin-bottom: 20px;"></div>
-            <div id="rightStick" style="width:45%; height: 45vw; margin-bottom: 20px;"></div>
-        </div>
+
+    <body style="width: auto;">
         <div style="display: flex; flex-direction: column;">
-            <div style="display: flex; flex-direction: row;">
-                <div style="width:15%;">Arm Base:</div>
-                <input type="range" min="-90" max="90" value="-90" id="armBase" style="width:75%;">
+            <div style="display: flex; flex-direction: column;">
+                <img src="/video" alt="" style="width: 100%;">
+                <div id="statusString">Batt: ---% </div>
+                <div style="display: flex; flex-direction: row; width: 100%; justify-content: center;">
+                    <div id="leftStick" style="width:45%; height: 45vw; margin-bottom: 20px;"></div>
+                    <div id="rightStick" style="width:45%; height: 45vw; margin-bottom: 20px;"></div>
+                </div>
             </div>
-            <div style="display: flex; flex-direction: row;">
-                <div style="width:15%;">Arm Joint:</div>
-                <input type="range" min="-90" max="60" value="60" id="armJoint" style="width:75%;">
-            </div>
-            <div style="display: flex; flex-direction: row;">
-                <div style="width:15%;">Claw:</div>
-                <input type="range" min="0" max="255" value="0" id="claw" style="width:75%;">
+    
+            <div style="display: flex; flex-direction: column;">
+
+                <div>Translate controls</div>
+                <div style="display: flex; flex-direction: row;">
+                    <div style="width:15%;">X:</div>
+                    <input type="range" min="-25" max="25" value="0" id="transX" style="width:75%;">
+                </div>
+                <div style="display: flex; flex-direction: row;">
+                    <div style="width:15%;">Y:</div>
+                    <input type="range" min="-18" max="18" value="0" id="transY" style="width:75%;">
+                </div>
+                <div style="display: flex; flex-direction: row;">
+                    <div style="width:15%;">Z:</div>
+                    <input type="range" min="60" max="110" value="90" id="transZ" style="width:75%;">
+                </div>
+                <hr>
+
+                <div>Arm controls</div>
+                <div style="display: flex; flex-direction: row;">
+                    <div style="width:15%;">Arm Base:</div>
+                    <input type="range" min="-90" max="90" value="-90" id="armBase" style="width:75%;">
+                </div>
+                <div style="display: flex; flex-direction: row;">
+                    <div style="width:15%;">Arm Joint:</div>
+                    <input type="range" min="-90" max="60" value="60" id="armJoint" style="width:75%;">
+                </div>
+                <div style="display: flex; flex-direction: row;">
+                    <div style="width:15%;">Claw:</div>
+                    <input type="range" min="0" max="255" value="0" id="claw" style="width:75%;">
+                </div>
+                <hr>
+
+                <div>Misc</div>
+                <div style="display: flex; flex-direction: row;">
+                    <div style="width:15%;">Move speed:</div>
+                    <input type="range" min="0" max="25" value="25" id="moveSpeed" style="width:75%;">
+                </div>
+                <div style="display: flex; flex-direction: row;">
+                    <div style="width:15%;">Turn Speed:</div>
+                    <input type="range" min="0" max="150" value="75" id="turnSpeed" style="width:75%;">
+                </div>
+                <div style="display: flex; flex-direction: row;">
+                    <div style="width:15%;">Gait Type:</div>
+                    <select name="gaitSelect" id="gaitSelect" style="width: auto;">
+                        <option>walk</option>
+                        <option default>trot</option>
+                        <option>high_walk</option>
+                    </select>
+                </div>
+                <div style="display: flex; flex-direction: row;">
+                    <div style="width:15%;">Pace:</div>
+                    <select name="paceSelect" id="paceSelect" style="width: auto;">
+                        <option default>normal</option>
+                        <option>slow</option>
+                        <option>high</option>
+                    </select>
+                </div>
+                <div style="display: flex; flex-direction: row;">
+                    <div style="width:15%;">IMU Stablization:</div>
+                    <input type="checkbox" id="imuCheck">
+                </div>
+                <div style="display: flex; flex-direction: row;">
+                    <div style="width:15%;">Recenter Joy2:</div>
+                    <input type="checkbox" id="recenterJoy2Check">
+                </div>
+                
+                <hr>
             </div>
         </div>
-    </div>
+    </body>
 
     <script type="text/javascript">
 
@@ -45,8 +106,10 @@
         })
 
         let left = new JoyStick('leftStick', {},  (data) => {
-            let motion = scale(data.y, [-100, 100], [-25, 25]);
-            let turn = scale(data.x, [-100, 100], [-150, 150]);
+            let motionSpeed = document.getElementById('moveSpeed').value;
+            let turnSpeed = document.getElementById('turnSpeed').value;
+            let motion = scale(data.y, [-100, 100], [-motionSpeed, motionSpeed]);
+            let turn = scale(data.x, [-100, 100], [-turnSpeed, turnSpeed]);
             console.log('motion', motion, 'turn', turn)
 
             socket.emit('command', { cmd: 'move', step: motion, direction: 'x' });
@@ -64,26 +127,48 @@
         const baseSlider = document.getElementById('armBase');
         const jointSlider = document.getElementById('armJoint');
         const clawSlider = document.getElementById('claw');
-
         baseSlider.addEventListener('input', (data) => {
             console.log('data', data);
             socket.emit('command', { cmd: 'motor', id: 53, step: data.target.value});
         });
-        baseSlider.addEventListener("submit", (event) => {
-            console.lot('This one!')
-            event.preventDefault();
-        })
         jointSlider.addEventListener('input', (data) => {
             socket.emit('command', { cmd: 'motor', id: 52, step: data.target.value});
         });
-        jointSlider.addEventListener("submit", (event) => {
-            event.preventDefault();
-        })
         clawSlider.addEventListener('input', (data) => {
             socket.emit('command', { cmd: 'motor', id: 51, step: data.target.value});
         });
-        clawSlider.addEventListener("submit", (event) => {
-            event.preventDefault();
+
+        const transXSlider = document.getElementById('transX');
+        const transYSlider = document.getElementById('transY');
+        const transZSlider = document.getElementById('transZ');
+        transXSlider.addEventListener('input', (data) => {
+            socket.emit('command', { cmd: 'translate', direction: 'x', step: data.target.value});
+        });
+        transYSlider.addEventListener('input', (data) => {
+            socket.emit('command', { cmd: 'translate', direction: 'y', step: data.target.value});
+        });
+        transZSlider.addEventListener('input', (data) => {
+            socket.emit('command', { cmd: 'translate', direction: 'z', step: data.target.value});
+        });
+
+        const imuCheck = document.getElementById('imuCheck')
+        imuCheck.addEventListener('change', (data) => {
+            socket.emit('command', { cmd: 'imu', mode: data.target.checked ? 1 : 0})
+        });
+
+        const gaitSelect = document.getElementById('gaitSelect');
+        gaitSelect.addEventListener('change', (data) => {
+            socket.emit('command', { cmd: 'gait', mode: data.target.value });
+        });
+
+        const paceSelect = document.getElementById('paceSelect');
+        paceSelect.addEventListener('change', (data) => {
+            socket.emit('command', { cmd: 'pace', mode: data.target.value });
+        });
+
+        socket.on('status', (payload) => {
+            const statusString = document.getElementById('statusString');
+            statusString.innerHTML = `Batt ${payload.battery}%`
         })
 
     </script>

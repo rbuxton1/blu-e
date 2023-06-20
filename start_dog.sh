@@ -1,1 +1,1 @@
-nodemon --exec python app.py dog
+nodemon --ext '*' --exec python app.py dog
