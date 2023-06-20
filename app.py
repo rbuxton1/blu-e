@@ -7,6 +7,7 @@ from flask_socketio import SocketIO
 import sys
 import cv2
 from picamera2 import Picamera2
+from libcamera import ColorSpace
 
 # Global variables 
 app = Flask(__name__)
@@ -14,7 +15,7 @@ app.config['SECRET_KEY'] = 'test'
 
 # Using picamera2 avoids the issues with openCV and the new libcamera stack.
 picam2 = Picamera2()
-config = picam2.create_preview_configuration()
+config = picam2.create_preview_configuration({"format": 'RGB888', "size": (640, 480)}, colour_space=ColorSpace.Srgb(), raw={"format": "SGBRG10_CSI2P", "size": (640, 480)})
 picam2.configure(config)
 picam2.start()
 
@@ -79,6 +80,18 @@ def release():
         return state
     else:
         return { "error": error_no_key }
+
+@app.route('/status')
+def get_status():
+    ret = {
+        "battery": dog.read_battery(),
+        "motors": dog.read_motor(),
+        "pitch": dog.read_pitch(),
+        "roll": dog.read_roll(),
+        "yaw": dog.read_yaw()
+    }
+
+    return ret
 
 # Helper function to generate video from cv2 video capture 
 def gen(video):
@@ -185,16 +198,39 @@ def leg():
 @app.route('/motor', methods=['POST'])
 def motor():
     data = request.json
-    if check_auth(data.get('key')):
-        id = data.get('id')
-        step = data.get('step')
-        try:
-            dog.motor(id, step)
-        except Exception as err:
-            return { "ok": False, "error": err }
-        return { "ok": True }
-    else: 
-        return { "error": error_no_key }
+    id = data.get('id')
+    step = data.get('step')
+    try:
+        dog.motor(id, step)
+    except Exception as err:
+        return { "ok": False, "error": err }
+    return { "ok": True }
+
+@app.route('/arm', methods=['POST'])
+def arm():
+    data = request.json
+    try:
+        dog.arm(data['x'], data['y'])
+    except Exception as err:
+        return { "ok": False, "error": err }
+    return { "ok": True }
+
+@app.route('/claw', methods=['POST'])
+def claw():
+    data = request.json
+    try:
+        dog.claw(data['pos'])
+    except Exception as err:
+        return { "ok": False, "error": err }
+    return { "ok": True }
+
+@app.route('/reset', methods=['POST'])
+def reset_motors():
+    try:
+        dog.reset()
+    except Exception as err:
+        return { "ok": False, "error": err }
+    return { "ok": True }
     
 @io.on('connect')
 def on_connect():
@@ -202,6 +238,7 @@ def on_connect():
 
 @io.on('command')
 def on_command(json):
+    print(json)
     try :
         if json['cmd'] == 'move':
             dog.move(json['direction'], json['step'])
@@ -209,6 +246,9 @@ def on_command(json):
             dog.turn(json['step'])
         elif json['cmd'] == 'attitude':
             dog.attitude(json['direction'], json['step'])
+        elif json['cmd'] == 'motor':
+            print(json)
+            dog.motor(json['id'], int(json['step']))
     except Exception as err:
         print(err)
 

@@ -1,20 +1,32 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Blu-E</title>
         <script src="/static/joy.min.js"></script>
         <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
     </head>
     <div style="width: 100%;">
         <img src="/video" alt="" style="width:100%;">
         <div style="display: flex; flex-direction: row; width: 100%; justify-content: center;">
-            <div id="leftStick" style="width:45vw;height:45vw;margin-bottom:20px;"></div>
-            <div id="rightStick" style="width:45vw;height:45vw;margin-bottom:20px;"></div>
+            <div id="leftStick" style="width:45%; height: 45vw; margin-bottom: 20px;"></div>
+            <div id="rightStick" style="width:45%; height: 45vw; margin-bottom: 20px;"></div>
         </div>
         <div style="display: flex; flex-direction: column;">
             <div style="display: flex; flex-direction: row;">
-                <div>Move speed ():</div>
-                <input type="range" min="1" max="25" value="25" id="myRange" style="width:75%;height:10vw;">
+                <div style="width:15%;">Arm Base:</div>
+                <input type="range" min="-90" max="90" value="-90" id="armBase" style="width:75%;">
             </div>
-            
+            <div style="display: flex; flex-direction: row;">
+                <div style="width:15%;">Arm Joint:</div>
+                <input type="range" min="-90" max="60" value="60" id="armJoint" style="width:75%;">
+            </div>
+            <div style="display: flex; flex-direction: row;">
+                <div style="width:15%;">Claw:</div>
+                <input type="range" min="0" max="255" value="0" id="claw" style="width:75%;">
+            </div>
         </div>
     </div>
 
@@ -35,10 +47,12 @@
         let left = new JoyStick('leftStick', {},  (data) => {
             let motion = scale(data.y, [-100, 100], [-25, 25]);
             let turn = scale(data.x, [-100, 100], [-150, 150]);
+            console.log('motion', motion, 'turn', turn)
 
             socket.emit('command', { cmd: 'move', step: motion, direction: 'x' });
             socket.emit('command', { cmd: 'turn', step: -turn });
         });
+
         let right = new JoyStick('rightStick', {}, (data) => {
             let pitch = scale(data.y, [-100, 100], [-10, 10]);
             let yaw = scale(data.x, [-100, 100], [-12, 12]);
@@ -46,5 +60,31 @@
             socket.emit('command', { cmd: 'attitude', direction: 'p', step: pitch });
             socket.emit('command', { cmd: 'attitude', direction: 'y', step: -yaw });
         });
+
+        const baseSlider = document.getElementById('armBase');
+        const jointSlider = document.getElementById('armJoint');
+        const clawSlider = document.getElementById('claw');
+
+        baseSlider.addEventListener('input', (data) => {
+            console.log('data', data);
+            socket.emit('command', { cmd: 'motor', id: 53, step: data.target.value});
+        });
+        baseSlider.addEventListener("submit", (event) => {
+            console.lot('This one!')
+            event.preventDefault();
+        })
+        jointSlider.addEventListener('input', (data) => {
+            socket.emit('command', { cmd: 'motor', id: 52, step: data.target.value});
+        });
+        jointSlider.addEventListener("submit", (event) => {
+            event.preventDefault();
+        })
+        clawSlider.addEventListener('input', (data) => {
+            socket.emit('command', { cmd: 'motor', id: 51, step: data.target.value});
+        });
+        clawSlider.addEventListener("submit", (event) => {
+            event.preventDefault();
+        })
+
     </script>
 </html>
