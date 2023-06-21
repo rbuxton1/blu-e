@@ -417,4 +417,9 @@ var JoyStick = (function(container, parameters, callback)
     {
         return getCardinalDirection();
     };
+
+    this.setAutoReturnToHome = function(bool) {
+        this.autoReturnToCenter = bool;
+        console.log('autoreturn', autoReturnToCenter);
+    }
 });

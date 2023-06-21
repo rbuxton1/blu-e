@@ -150,6 +150,11 @@
         imuCheck.addEventListener('change', (data) => {
             socket.emit('command', { cmd: 'imu', mode: data.target.checked ? 1 : 0})
         });
+        const joy2CenterCheck = document.getElementById('recenterJoy2Check')
+        joy2CenterCheck.addEventListener('change', (data) => {
+            //socket.emit('command', { cmd: 'imu', mode: data.target.checked ? 1 : 0})
+            right.setAutoReturnToHome(data.target.checked);
+        });
 
         const gaitSelect = document.getElementById('gaitSelect');
         gaitSelect.addEventListener('change', (data) => {
