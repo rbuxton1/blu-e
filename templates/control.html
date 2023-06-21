@@ -5,21 +5,21 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="X-UA-Compatible" content="ie=edge">
         <title>Blu-E</title>
-        <script src="/static/joy.min.js"></script>
+        <script src="/static/joy.js"></script>
         <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
     </head>
 
     <body class="container-fluid">
-        <div class="row justify-content-center">
+        <div class="row justify-content-center pb-3">
             <div class="col-sm">
                 <div class="container-sm text-center">
                     <img src="/video" alt="Live feed" class="img-fluid">
                 </div>
                 <div id="statusString">Batt: ---% </div>
                 <div class="row justify-content-center">
-                    <div id="leftStick" class="ratio ratio-1x1 col"></div>
-                    <div id="rightStick" class="ratio ratio-1x1 col"></div>
+                    <div id="leftStick" class="ratio ratio-1x1 col" style="margin-bottom: 20px;"></div>
+                    <div id="rightStick" class="ratio ratio-1x1 col" style="margin-bottom: 20px;"></div>
                 </div>
             </div>
             
@@ -76,7 +76,7 @@
                             </select>
                             <input class="form-check-input" type="checkbox" value="" id="imuCheck">
                             <label class="form-check-label" for="imuCheck">IMU Stablization</label>
-                            <input class="form-check-input" type="checkbox" value="" id="recenterJoy2Check">
+                            <input class="form-check-input" type="checkbox" checked id="recenterJoy2Check">
                             <label class="form-check-label" for="recenterJoy2Check">Recenter Joystick 2</label>
                         </div>
                     </div>
@@ -87,5 +87,83 @@
     </body>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
-    <script src="/static/main.js"></script>
+    <script type="text/javascript">
+        const scale = (input, inputRange, outputRange) => {
+            let [inMin, inMax] = inputRange;
+            let [outMin, outMax] = outputRange;
+            let s = (input - inMin) / (inMax - inMin);
+            return s * (outMax - outMin) + outMin;
+        }
+
+        const socket = io();
+        socket.on('connect', () => {
+            console.log('Connected!');
+        })
+
+        let left = new JoyStick('leftStick', {},  (data) => {
+            let motionSpeed = document.getElementById('moveSpeed').value;
+            let turnSpeed = document.getElementById('turnSpeed').value;
+            let motion = scale(data.y, [-100, 100], [-motionSpeed, motionSpeed]);
+            let turn = scale(data.x, [-100, 100], [-turnSpeed, turnSpeed]);
+            console.log('motion', motion, 'turn', turn)
+
+            socket.emit('command', { cmd: 'move', step: motion, direction: 'x' });
+            socket.emit('command', { cmd: 'turn', step: -turn });
+        });
+
+        let right = new JoyStick('rightStick', {}, (data) => {
+            let pitch = scale(data.y, [-100, 100], [-10, 10]);
+            let yaw = scale(data.x, [-100, 100], [-12, 12]);
+
+            socket.emit('command', { cmd: 'attitude', direction: 'p', step: pitch });
+            socket.emit('command', { cmd: 'attitude', direction: 'y', step: -yaw });
+        });
+
+        const baseSlider = document.getElementById('armBase');
+        const jointSlider = document.getElementById('armJoint');
+        const clawSlider = document.getElementById('claw');
+        baseSlider.addEventListener('input', (data) => {
+            console.log('data', data);
+            socket.emit('command', { cmd: 'motor', id: 53, step: data.target.value});
+        });
+        jointSlider.addEventListener('input', (data) => {
+            socket.emit('command', { cmd: 'motor', id: 52, step: data.target.value});
+        });
+        clawSlider.addEventListener('input', (data) => {
+            socket.emit('command', { cmd: 'motor', id: 51, step: data.target.value});
+        });
+
+        const transXSlider = document.getElementById('transX');
+        const transYSlider = document.getElementById('transY');
+        const transZSlider = document.getElementById('transZ');
+        transXSlider.addEventListener('input', (data) => {
+            socket.emit('command', { cmd: 'translate', direction: 'x', step: data.target.value});
+        });
+        transYSlider.addEventListener('input', (data) => {
+            socket.emit('command', { cmd: 'translate', direction: 'y', step: data.target.value});
+        });
+        transZSlider.addEventListener('input', (data) => {
+            socket.emit('command', { cmd: 'translate', direction: 'z', step: data.target.value});
+        });
+
+        const imuCheck = document.getElementById('imuCheck')
+        imuCheck.addEventListener('change', (data) => {
+            socket.emit('command', { cmd: 'imu', mode: data.target.checked ? 1 : 0})
+        });
+
+        const gaitSelect = document.getElementById('gaitSelect');
+        gaitSelect.addEventListener('change', (data) => {
+            socket.emit('command', { cmd: 'gait', mode: data.target.value });
+        });
+
+        const paceSelect = document.getElementById('paceSelect');
+        paceSelect.addEventListener('change', (data) => {
+            socket.emit('command', { cmd: 'pace', mode: data.target.value });
+        });
+
+        socket.on('status', (payload) => {
+            const statusString = document.getElementById('statusString');
+            statusString.innerHTML = `Batt ${payload.battery}%`
+        })
+     </script>
 </html>

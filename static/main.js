@@ -11,9 +11,15 @@ socket.on('connect', () => {
 })
 
 let left = new JoyStick('leftStick', {},  (data) => {
+    let y = data.y;
+    if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){
+        // Joysticks only go to 75% on mobile 
+        y = y * 1.33;
+    }
+
     let motionSpeed = document.getElementById('moveSpeed').value;
     let turnSpeed = document.getElementById('turnSpeed').value;
-    let motion = scale(data.y, [-100, 100], [-motionSpeed, motionSpeed]);
+    let motion = scale(y, [-100, 100], [-motionSpeed, motionSpeed]);
     let turn = scale(data.x, [-100, 100], [-turnSpeed, turnSpeed]);
     console.log('motion', motion, 'turn', turn)
 
@@ -22,7 +28,14 @@ let left = new JoyStick('leftStick', {},  (data) => {
 });
 
 let right = new JoyStick('rightStick', {}, (data) => {
-    let pitch = scale(data.y, [-100, 100], [-10, 10]);
+    let y = data.y;
+    if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){
+        // Joysticks only go to 75% on mobile 
+        y = y * 1.33;
+        console.log('WOAH!', y);
+    }
+
+    let pitch = scale(y, [-100, 100], [-10, 10]);
     let yaw = scale(data.x, [-100, 100], [-12, 12]);
 
     socket.emit('command', { cmd: 'attitude', direction: 'p', step: pitch });
