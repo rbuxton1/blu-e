@@ -8,6 +8,8 @@ import sys
 import cv2
 from picamera2 import Picamera2
 from libcamera import ColorSpace
+import xgoscreen.LCD_2inch as LCD_2inch
+from PIL import Image,ImageDraw,ImageFont
 
 # Global variables 
 app = Flask(__name__)
@@ -18,6 +20,17 @@ picam2 = Picamera2()
 config = picam2.create_preview_configuration({"format": 'RGB888', "size": (640, 480)}, colour_space=ColorSpace.Srgb(), raw={"format": "SGBRG10_CSI2P", "size": (640, 480)})
 picam2.configure(config)
 picam2.start()
+
+#display init
+display = LCD_2inch.LCD_2inch()
+display.Init()
+display.clear()
+eye_size = 40
+splash = Image.new("RGB", (display.height, display.width), (0, 0, 255))
+splash_draw = ImageDraw.Draw(splash)
+splash_draw.ellipse([(30 - (eye_size/2), (display.width/2) -(eye_size/2)), (30 + eye_size, (display.width/2) + eye_size)], (255, 255, 255), (255, 255, 255))
+splash_draw.ellipse([(display.height - 50 - (eye_size/2), (display.width/2) -(eye_size/2)), (display.height - 50 + eye_size, (display.width/2) + eye_size)], (255, 255, 255), (255, 255, 255))
+display.ShowImage(splash)
 
 io = SocketIO(app, cors_allowed_origins="*")
 state = {
