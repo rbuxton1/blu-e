@@ -14,16 +14,14 @@ class Core:
         if live == True:
             # If the dog parameter was provided then initialize dog 
             self.dog = XGO(port='/dev/serial0',version="xgolite")
-            fm=dog.read_firmware()
-            if fm[0]=='M':
+            fm = self.dog.read_firmware()
+            if fm[0] == 'M':
                 print('XGO-MINI')
-                dog = XGO(port='/dev/ttyAMA0',version="xgomini")
-                dog_type='M'
+                self.dog = XGO(port='/dev/ttyAMA0',version="xgomini")
             else:
                 print('XGO-LITE')
-                dog_type='L'
-            dog.reset()
-            print('Connected to XGO. Battery: ', dog.read_battery())
+            self.dog.reset()
+            print('Connected to XGO. Battery: ', self.dog.read_battery())
         else: 
             self.dog = None
 

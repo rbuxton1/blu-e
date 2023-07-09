@@ -32,7 +32,7 @@ class API:
     
     def video_feed(self):
         """Returns the video stream to an endpoint"""
-        return Response(self.generate_video(self.cam),
+        return Response(self.generate_video(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
     
     def socket_on_connect(self):

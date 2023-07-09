@@ -1,4 +1,5 @@
 from core import Core 
+import sys
 
 # Main functions 
 if __name__ == '__main__':
