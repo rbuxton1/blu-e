@@ -253,6 +253,21 @@ def set_imu():
     except Exception as err:
         return { "ok": False, "error": err }
     return { "ok": True }
+
+@app.route('/scripts', methods=['GET'])
+def get_scripts():
+    scripts = []
+    try:
+        from pathlib import Path
+
+        for child in Path('.').iterdir():
+            if child.is_file():
+                scripts.append(child.name)
+                # print(f"{child.name}:\n{child.read_text()}\n")
+    except Exception as err:
+        return { "ok": False, "error": err }
+    return { "ok": True, "scripts": scripts}
+    
     
 @io.on('connect')
 def on_connect():

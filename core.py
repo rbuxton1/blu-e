@@ -35,18 +35,14 @@ class Core:
         self.socket = SocketIO(self.flask, cors_allowed_origins="*")
 
         #TODO: Implement a display manager class and bring that up here 
-        display = LCD_2inch.LCD_2inch()
-        display.Init()
-        display.clear()
+        self.display = LCD_2inch.LCD_2inch()
+        self.display.Init()
+        self.display.clear()
         eye_size = 40
-        splash = Image.new("RGB", (display.height, display.width), (0, 0, 255))
-        splash_draw = ImageDraw.Draw(splash)
-        splash_draw.ellipse([(30 - (eye_size/2), (display.width/2) -(eye_size/2)), (30 + eye_size, (display.width/2) + eye_size)], (255, 255, 255), (255, 255, 255))
-        splash_draw.ellipse([(display.height - 50 - (eye_size/2), (display.width/2) -(eye_size/2)), (display.height - 50 + eye_size, (display.width/2) + eye_size)], (255, 255, 255), (255, 255, 255))
-        display.ShowImage(splash)
+        
 
         # Start the API
-        self.api = API(self.flask, self.socket, self.dog, self.camera)
+        self.api = API(self.flask, self.socket, self.dog, self.camera, self.display)
         
 
     def init_and_start_cam(self, height=480, width=640):
@@ -54,6 +50,26 @@ class Core:
         config = self.camera.create_preview_configuration({"format": 'RGB888', "size": (width, height)}, colour_space=ColorSpace.Srgb(), raw={"format": "SGBRG10_CSI2P", "size": (width, height)})
         self.camera.configure(config)
         self.camera.start()
+    
+    def init_display_with_eyes(self, size=40):
+        splash = Image.new("RGB", (self.display.height, self.display.width), (0, 0, 255))
+        splash_draw = ImageDraw.Draw(splash)
+        splash_draw.ellipse([
+            (30 - (size/2), (self.display.width/2) -(size/2)),
+            (30 + size, (self.display.width/2) + size)
+        ], 
+            (255, 255, 255), 
+            (255, 255, 255)
+        )
+        splash_draw.ellipse([
+            (self.display.height - 50 - (size/2),
+            (self.display.width/2) -(size/2)), 
+            (self.display.height - 50 + size, (self.display.width/2) + size)
+        ], 
+            (255, 255, 255), 
+            (255, 255, 255)
+        )
+        self.display.ShowImage(splash)
     
     def start(self):
         print('Starting Blu-E Core!')
